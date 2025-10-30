@@ -2,6 +2,10 @@
 """
 Kilat-Lang Compiler/Interpreter
 Main entry point for compiling and executing Kilat-Lang programs
+
+Modes:
+1. Native mode (--native): Uses independent interpreter (no Python dependency)
+2. Transpile mode (default): Transpiles to Python and executes
 """
 
 import sys
@@ -64,10 +68,15 @@ def main():
     Main entry point for the Kilat compiler
     """
     if len(sys.argv) < 2:
-        print("Usage: python kilat.py <source_file.klt> [--compile-only] [-o output.py]")
-        print("Options:")
+        print("Usage: python kilat.py <source_file.klt> [options]")
+        print("\nOptions:")
+        print("  --native          Use native interpreter (independent from Python)")
         print("  --compile-only    Compile to Python without executing")
         print("  -o output.py      Specify output file (use with --compile-only)")
+        print("\nExamples:")
+        print("  python kilat.py program.klt              # Transpile and run")
+        print("  python kilat.py program.klt --native     # Run with native interpreter")
+        print("  python kilat.py program.klt --compile-only  # Just compile to Python")
         sys.exit(1)
     
     source_file = sys.argv[1]
@@ -76,11 +85,25 @@ def main():
         print(f"Error: File '{source_file}' not found", file=sys.stderr)
         sys.exit(1)
     
-    compiler = KilatCompiler(source_file=source_file)
+    # Check for native mode
+    if '--native' in sys.argv:
+        # Use native interpreter
+        from kilat_interpreter import run_kilat
+        
+        with open(source_file, 'r', encoding='utf-8') as f:
+            source_code = f.read()
+        
+        try:
+            run_kilat(source_code)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
     
-    # Check for flags
-    if '--compile-only' in sys.argv:
+    elif '--compile-only' in sys.argv:
         # Compile only mode
+        compiler = KilatCompiler(source_file=source_file)
         output_file = None
         if '-o' in sys.argv:
             try:
@@ -92,8 +115,10 @@ def main():
         
         output_file = compiler.compile_and_save(output_file)
         print(f"Compiled successfully to: {output_file}")
+    
     else:
-        # Compile and run mode (default)
+        # Compile and run mode (default - transpile to Python)
+        compiler = KilatCompiler(source_file=source_file)
         compiler.compile_and_run()
 
 

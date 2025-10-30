@@ -18,18 +18,35 @@ Kilat-Lang adalah bahasa pengaturcaraan yang menggunakan sintaks Bahasa Melayu t
 
 ## 🚀 Cara Menggunakan
 
-### 1. Jalankan Program Kilat-Lang
+Kilat-Lang mempunyai **DUA mod pelaksanaan**:
+
+### 1. Mod Transpile (Default) - Bergantung kepada Python
 
 ```bash
 python kilat.py <nama_fail.klt>
 ```
+
+Menterjemah kod Kilat kepada Python dan menjalankannya.
 
 Contoh:
 ```bash
 python kilat.py examples/hello_world.klt
 ```
 
-### 2. Compile Sahaja (Tanpa Jalankan)
+### 2. Mod Native - Interpreter Bebas
+
+```bash
+python kilat.py <nama_fail.klt> --native
+```
+
+Menjalankan kod Kilat terus tanpa bergantung kepada Python! Menggunakan lexer, parser, dan interpreter tersendiri.
+
+Contoh:
+```bash
+python kilat.py examples/hello_world.klt --native
+```
+
+### 3. Compile Sahaja (Tanpa Jalankan)
 
 ```bash
 python kilat.py <nama_fail.klt> --compile-only
@@ -37,7 +54,7 @@ python kilat.py <nama_fail.klt> --compile-only
 
 Ini akan menghasilkan fail Python (`.py`) yang boleh dijalankan kemudian.
 
-### 3. Compile dengan Nama Output Tertentu
+### 4. Compile dengan Nama Output Tertentu
 
 ```bash
 python kilat.py <nama_fail.klt> --compile-only -o output.py
@@ -175,9 +192,17 @@ python kilat.py examples/calculator.klt
 
 ## 🔧 Cara Kerja
 
+### Mod Transpile (Default)
 1. **Lexer** (`kilat_lexer.py`) - Membaca kod Kilat-Lang dan menukar kata kunci Melayu kepada token Python
 2. **Translator** (`kilat_translator.py`) - Menterjemah token kepada kod Python yang sah
 3. **Compiler** (`kilat.py`) - Menjalankan kod Python yang telah diterjemah
+
+### Mod Native (--native)
+1. **Lexer** (`kilat_lexer2.py`) - Tokenisasi kod sumber kepada tokens
+2. **Parser** (`kilat_parser.py`) - Membina Abstract Syntax Tree (AST)
+3. **Interpreter** (`kilat_interpreter.py`) - Melaksanakan AST secara langsung
+
+**Lihat [ARCHITECTURE.md](ARCHITECTURE.md) untuk penjelasan lengkap tentang arkitektur compiler.**
 
 ## 🤝 Sumbangan
 
