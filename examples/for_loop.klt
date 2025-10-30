@@ -1,0 +1,21 @@
+# Contoh penggunaan untuk diulang (for loop) dalam Kilat-Lang
+
+cetak("=== Contoh For Loop ===")
+
+# Loop mudah dari 1 hingga 5
+cetak("\nMengira dari 1 hingga 5:")
+untuk diulang i dalam julat(1, 6):
+    cetak("Nombor:", i)
+
+# Loop dengan senarai
+cetak("\nMengulang melalui senarai buah:")
+buah = ["epal", "pisang", "oren", "mangga"]
+untuk diulang item dalam buah:
+    cetak("Buah:", item)
+
+# Loop bersarang
+cetak("\nSegi empat bintang 3x3:")
+untuk diulang baris dalam julat(3):
+    untuk diulang lajur dalam julat(3):
+        cetak("*", end=" ")
+    cetak()

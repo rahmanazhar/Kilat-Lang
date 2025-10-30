@@ -1,0 +1,46 @@
+# Program lengkap: Kalkulator mudah dalam Kilat-Lang
+
+fungsi tambah(x, y):
+    kembali x + y
+
+fungsi tolak(x, y):
+    kembali x - y
+
+fungsi darab(x, y):
+    kembali x * y
+
+fungsi bahagi(x, y):
+    jika y == 0:
+        kembali "Ralat: Tidak boleh bahagi dengan sifar!"
+    atau:
+        kembali x / y
+
+fungsi main():
+    cetak("=================================")
+    cetak("   Selamat Datang ke Kalkulator")
+    cetak("=================================")
+    cetak()
+    cetak("Operasi yang tersedia:")
+    cetak("1. Tambah (+)")
+    cetak("2. Tolak (-)")
+    cetak("3. Darab (*)")
+    cetak("4. Bahagi (/)")
+    cetak()
+    
+    # Ambil input
+    nombor1 = 15
+    nombor2 = 3
+    
+    cetak(f"Nombor pertama: {nombor1}")
+    cetak(f"Nombor kedua: {nombor2}")
+    cetak()
+    
+    # Kira dan papar semua operasi
+    cetak("Keputusan:")
+    cetak(f"{nombor1} + {nombor2} = {tambah(nombor1, nombor2)}")
+    cetak(f"{nombor1} - {nombor2} = {tolak(nombor1, nombor2)}")
+    cetak(f"{nombor1} * {nombor2} = {darab(nombor1, nombor2)}")
+    cetak(f"{nombor1} / {nombor2} = {bahagi(nombor1, nombor2)}")
+
+# Jalankan program
+main()

@@ -1,0 +1,31 @@
+# Contoh penggunaan pernyataan bersyarat dalam Kilat-Lang
+
+cetak("=== Contoh If-Else ===")
+
+# Contoh mudah
+nombor = 10
+
+jika nombor > 0:
+    cetak("Nombor adalah positif")
+ataujika nombor < 0:
+    cetak("Nombor adalah negatif")
+atau:
+    cetak("Nombor adalah sifar")
+
+# Contoh dengan operator logik
+umur = 20
+ada_lesen = benar
+
+cetak("\n=== Semak Kelayakan Memandu ===")
+jika umur >= 18 dan ada_lesen:
+    cetak("Anda boleh memandu!")
+atau:
+    cetak("Anda tidak boleh memandu")
+
+# Contoh dengan loop
+cetak("\n=== Cari Nombor Genap ===")
+untuk diulang i dalam julat(1, 11):
+    jika i % 2 == 0:
+        cetak(i, "adalah genap")
+    atau:
+        cetak(i, "adalah ganjil")

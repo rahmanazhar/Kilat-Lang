@@ -1,0 +1,42 @@
+# Contoh penggunaan fungsi dalam Kilat-Lang
+
+cetak("=== Contoh Fungsi ===")
+
+# Fungsi mudah
+fungsi salam(nama):
+    cetak("Salam sejahtera,", nama)
+
+# Fungsi dengan pulangan nilai
+fungsi tambah(a, b):
+    kembali a + b
+
+# Fungsi dengan parameter lalai
+fungsi pendarab(x, faktor=2):
+    kembali x * faktor
+
+# Fungsi untuk kira faktorial
+fungsi faktorial(n):
+    jika n <= 1:
+        kembali 1
+    atau:
+        kembali n * faktorial(n - 1)
+
+# Panggil fungsi
+salam("Ahmad")
+
+hasil = tambah(5, 3)
+cetak("5 + 3 =", hasil)
+
+cetak("10 x 2 =", pendarab(10))
+cetak("10 x 5 =", pendarab(10, 5))
+
+cetak("Faktorial 5 =", faktorial(5))
+
+# Fungsi dengan loop
+fungsi cetak_senarai(senarai):
+    untuk diulang item dalam senarai:
+        cetak("-", item)
+
+cetak("\nSenarai hobi:")
+hobi = ["membaca", "berenang", "memasak"]
+cetak_senarai(hobi)

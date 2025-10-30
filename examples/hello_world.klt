@@ -1,0 +1,8 @@
+# Program Hello World dalam Kilat-Lang
+cetak("Selamat datang ke Kilat-Lang!")
+
+# Contoh penggunaan pembolehubah
+nama = "Ahmad"
+umur = 25
+cetak("Nama:", nama)
+cetak("Umur:", umur)

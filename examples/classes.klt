@@ -1,0 +1,38 @@
+# Contoh kelas dalam Kilat-Lang
+
+cetak("=== Contoh Kelas ===")
+
+# Definisi kelas mudah
+kelas Orang:
+    fungsi __init__(self, nama, umur):
+        self.nama = nama
+        self.umur = umur
+    
+    fungsi perkenalkan(self):
+        cetak(f"Nama saya {self.nama} dan umur saya {self.umur} tahun")
+    
+    fungsi tahun_lahir(self):
+        dari datetime import datetime
+        tahun_sekarang = datetime.now().year
+        kembali tahun_sekarang - self.umur
+
+# Buat objek
+ahmad = Orang("Ahmad", 25)
+siti = Orang("Siti", 30)
+
+# Panggil method
+ahmad.perkenalkan()
+siti.perkenalkan()
+
+# Kelas dengan inheritance
+kelas Pelajar(Orang):
+    fungsi __init__(self, nama, umur, sekolah):
+        Orang.__init__(self, nama, umur)
+        self.sekolah = sekolah
+    
+    fungsi perkenalkan(self):
+        cetak(f"Nama saya {self.nama}, umur {self.umur} tahun, belajar di {self.sekolah}")
+
+# Buat objek pelajar
+ali = Pelajar("Ali", 16, "SMK Taman Desa")
+ali.perkenalkan()
