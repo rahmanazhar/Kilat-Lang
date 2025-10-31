@@ -102,6 +102,15 @@ class AttributeNode(ASTNode):
 
 
 @dataclass
+class AttributeAssignmentNode(ASTNode):
+    object: ASTNode
+    attribute: str
+    value: ASTNode
+    line: int = 0
+    column: int = 0
+
+
+@dataclass
 class IndexNode(ASTNode):
     object: ASTNode
     index: ASTNode

@@ -168,6 +168,18 @@ Lihat folder `examples/` untuk contoh program yang lengkap:
 
 ## 🧪 Menguji Compiler
 
+### Test Suite Automatik (Native Interpreter)
+
+Jalankan 25 ujian komprehensif untuk mod native:
+
+```bash
+python test_native.py
+```
+
+**Hasil**: Semua 25 ujian lulus! ✅
+
+### Test Manual - Contoh Program
+
 Jalankan semua contoh program untuk menguji compiler:
 
 ```bash
@@ -189,6 +201,8 @@ python kilat.py examples/classes.klt
 # Calculator
 python kilat.py examples/calculator.klt
 ```
+
+**Lihat [TEST_README.md](TEST_README.md) untuk maklumat lengkap tentang test suite.**
 
 ## 🔧 Cara Kerja
 

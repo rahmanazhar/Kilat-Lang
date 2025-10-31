@@ -221,6 +221,19 @@ class KilatInterpreter:
             env.set(node.target, value)
             return None
         
+        elif isinstance(node, AttributeAssignmentNode):
+            obj = self.eval(node.object, env)
+            value = self.eval(node.value, env)
+            if isinstance(obj, KilatInstance):
+                obj.set(node.attribute, value)
+            else:
+                # Try to set Python attribute
+                try:
+                    setattr(obj, node.attribute, value)
+                except AttributeError:
+                    raise KilatRuntimeError(f"Cannot set attribute '{node.attribute}'")
+            return None
+        
         elif isinstance(node, IfNode):
             condition = self.eval(node.condition, env)
             if self.is_truthy(condition):

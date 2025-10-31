@@ -110,6 +110,12 @@ class KilatParser:
                 value = self.parse_expression()
                 self.skip_newlines()
                 return AssignmentNode(target=expr.name, value=value, line=expr.line, column=expr.column)
+            elif isinstance(expr, AttributeNode):
+                # Handle attribute assignment (e.g., self.nama = value)
+                self.advance()  # Skip =
+                value = self.parse_expression()
+                self.skip_newlines()
+                return AttributeAssignmentNode(object=expr.object, attribute=expr.attribute, value=value, line=expr.line, column=expr.column)
             else:
                 self.error("Invalid assignment target")
         
