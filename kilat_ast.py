@@ -3,8 +3,8 @@ Kilat-Lang AST (Abstract Syntax Tree)
 Defines all node types for the language
 """
 
-from dataclasses import dataclass
-from typing import Any, List, Optional, Union
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Union
 
 
 # Base classes
@@ -50,6 +50,14 @@ class IdentifierNode(ASTNode):
     column: int = 0
 
 
+# F-strings: list of parts (StringNode literals and expression nodes)
+@dataclass
+class FStringNode(ASTNode):
+    parts: List[ASTNode]  # alternating StringNode (literal) and expression nodes
+    line: int = 0
+    column: int = 0
+
+
 # Collections
 @dataclass
 class ListNode(ASTNode):
@@ -88,6 +96,26 @@ class UnaryOpNode(ASTNode):
 @dataclass
 class AssignmentNode(ASTNode):
     target: str
+    value: ASTNode
+    line: int = 0
+    column: int = 0
+
+
+@dataclass
+class AugmentedAssignmentNode(ASTNode):
+    """Augmented assignment: +=, -=, *=, /=, //=, **=, %="""
+    target: str        # variable name (or index/attr target string)
+    operator: str      # '+', '-', '*', '/', '//', '**', '%'
+    value: ASTNode
+    line: int = 0
+    column: int = 0
+
+
+@dataclass
+class IndexAssignmentNode(ASTNode):
+    """Index assignment: list[i] = value  or  dict['key'] = value"""
+    object: ASTNode
+    index: ASTNode
     value: ASTNode
     line: int = 0
     column: int = 0
@@ -178,8 +206,9 @@ class FunctionDefNode(ASTNode):
 
 @dataclass
 class FunctionCallNode(ASTNode):
-    function: Union[str, ASTNode]  # Function name or expression
+    function: Union[str, ASTNode]       # Function name or expression
     arguments: List[ASTNode]
+    keyword_args: Dict[str, ASTNode]    # Keyword arguments  {name: expr}
     line: int = 0
     column: int = 0
 
@@ -198,7 +227,7 @@ class ClassDefNode(ASTNode):
 @dataclass
 class TryNode(ASTNode):
     try_body: List[ASTNode]
-    except_clauses: List[tuple]  # List of (exception_type, body) tuples
+    except_clauses: List[tuple]  # List of (exception_type, alias, body) tuples
     finally_body: Optional[List[ASTNode]] = None
     line: int = 0
     column: int = 0
@@ -233,5 +262,35 @@ class FromImportNode(ASTNode):
     module: str
     names: List[str]
     aliases: List[Optional[str]]
+    line: int = 0
+    column: int = 0
+
+
+# Global / nonlocal
+@dataclass
+class GlobalNode(ASTNode):
+    names: List[str]
+    line: int = 0
+    column: int = 0
+
+
+@dataclass
+class NonlocalNode(ASTNode):
+    names: List[str]
+    line: int = 0
+    column: int = 0
+
+
+# Delete statement
+@dataclass
+class DeleteNode(ASTNode):
+    target: ASTNode
+    line: int = 0
+    column: int = 0
+
+
+# Pass statement (as a real node, not None)
+@dataclass
+class PassNode(ASTNode):
     line: int = 0
     column: int = 0

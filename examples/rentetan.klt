@@ -1,0 +1,47 @@
+# Contoh operasi rentetan (string) dalam Kilat-Lang
+
+cetak("=== Operasi Rentetan ===")
+
+# Rentetan asas
+nama = "Kilat-Lang"
+cetak("Rentetan:", nama)
+cetak("Panjang:", panjang(nama))
+
+# Huruf besar/kecil
+cetak("Huruf besar:", nama.upper())
+cetak("Huruf kecil:", nama.lower())
+
+# Potong ruang
+dengan_ruang = "   Helo Dunia   "
+cetak("Asal:", dengan_ruang)
+cetak("Selepas strip:", dengan_ruang.strip())
+
+# Ganti rentetan
+mesej = "Helo Dunia"
+cetak("Ganti:", mesej.replace("Dunia", "Kilat"))
+
+# Pisah rentetan
+data = "epal,pisang,oren,mangga"
+buah = data.split(",")
+cetak("Senarai buah:", buah)
+
+# Gabung senarai
+cetak("Digabung:", " | ".join(buah))
+
+# Cari dalam rentetan
+cetak("'pisang' dalam data?", "pisang" dalam data)
+cetak("Kedudukan 'oren':", data.find("oren"))
+
+# F-String
+nama_pengguna = "Ahmad"
+umur = 25
+cetak(f"Nama: {nama_pengguna}, Umur: {umur} tahun")
+cetak(f"Tahun lahir anggaran: {2025 - umur}")
+
+# Semak awalan/akhiran
+fail = "program.klt"
+cetak(f"Adakah fail .klt? {fail.endswith('.klt')}")
+
+cetak("\n=== Pemformatan ===")
+untuk diulang i dalam julat(1, 6):
+    cetak(f"Baris {i}: {'*' * i}")

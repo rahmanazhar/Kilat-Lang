@@ -1,125 +1,148 @@
 #!/usr/bin/env python3
 """
-Kilat-Lang Compiler/Interpreter
-Main entry point for compiling and executing Kilat-Lang programs
+Kilat-Lang  ⚡
+Bahasa pengaturcaraan sintaks Melayu berdasarkan Python.
 
-Modes:
-1. Native mode (--native): Uses independent interpreter (no Python dependency)
-2. Transpile mode (default): Transpiles to Python and executes
+Mod:
+  1. Native (--native)     — interpreter tersendiri, tanpa kebergantungan Python
+  2. Transpile (lalai)     — transpil ke Python dan jalankan
+  3. Compile (--compile-only) — hanya transpil, simpan fail .py
+  4. REPL   (--repl)       — shell interaktif
 """
 
 import sys
 import os
-from kilat_translator import KilatTranslator
 
+__version__ = '1.0.0'
+
+
+# ------------------------------------------------------------------ #
+#  Transpile-mode compiler                                             #
+# ------------------------------------------------------------------ #
 
 class KilatCompiler:
-    """Main compiler class for Kilat-Lang"""
-    
-    def __init__(self, source_file=None, source_code=None):
+    """Transpile Kilat-Lang source to Python and optionally execute it."""
+
+    def __init__(self, source_file: str = None, source_code: str = None):
         self.source_file = source_file
         self.source_code = source_code
-        
-        if source_file and not source_code:
+
+        if source_file and source_code is None:
             with open(source_file, 'r', encoding='utf-8') as f:
                 self.source_code = f.read()
-    
-    def compile(self):
-        """
-        Compile Kilat-Lang source to Python
-        """
+
+    def compile(self) -> str:
+        from kilat_translator import KilatTranslator
         translator = KilatTranslator(self.source_code)
-        python_code = translator.translate()
-        return python_code
-    
-    def compile_and_save(self, output_file=None):
-        """
-        Compile and save to a Python file
-        """
+        return translator.translate()
+
+    def compile_and_save(self, output_file: str = None) -> str:
         python_code = self.compile()
-        
-        if not output_file and self.source_file:
-            # Generate output filename from source filename
-            output_file = self.source_file.rsplit('.', 1)[0] + '.py'
-        
+
+        if output_file is None and self.source_file:
+            output_file = os.path.splitext(self.source_file)[0] + '.py'
+
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(python_code)
-        
         return output_file
-    
+
     def compile_and_run(self):
-        """
-        Compile and execute the Kilat-Lang program
-        """
         python_code = self.compile()
-        
-        # Execute the Python code
+        exec_globals = {
+            '__name__': '__main__',
+            '__file__': self.source_file or '<kilat>',
+        }
         try:
-            # Create a clean namespace for execution
-            exec_globals = {'__name__': '__main__', '__file__': self.source_file or '<kilat>'}
-            exec(python_code, exec_globals)
+            exec(compile(python_code, self.source_file or '<kilat>', 'exec'), exec_globals)
+        except SystemExit:
+            raise
         except Exception as e:
-            print(f"Error executing Kilat-Lang program: {e}", file=sys.stderr)
+            print(f"Ralat: {e}", file=sys.stderr)
             sys.exit(1)
+
+
+# ------------------------------------------------------------------ #
+#  CLI entry point                                                     #
+# ------------------------------------------------------------------ #
+
+_USAGE = """\
+Penggunaan: kilat <fail.klt> [pilihan]
+       kilat --repl
+
+Pilihan:
+  --native          Jalankan dengan interpreter asli (tanpa Python)
+  --repl            Buka shell interaktif (REPL)
+  --compile-only    Transpil ke Python tanpa menjalankan
+  -o <fail.py>      Fail output untuk --compile-only
+  --version         Papar versi
+  --help, -h        Papar bantuan ini
+
+Contoh:
+  kilat program.klt              # Transpil dan jalankan
+  kilat program.klt --native     # Jalankan dengan interpreter asli
+  kilat program.klt --compile-only -o output.py
+  kilat --repl                   # Shell interaktif
+"""
 
 
 def main():
-    """
-    Main entry point for the Kilat compiler
-    """
-    if len(sys.argv) < 2:
-        print("Usage: python kilat.py <source_file.klt> [options]")
-        print("\nOptions:")
-        print("  --native          Use native interpreter (independent from Python)")
-        print("  --compile-only    Compile to Python without executing")
-        print("  -o output.py      Specify output file (use with --compile-only)")
-        print("\nExamples:")
-        print("  python kilat.py program.klt              # Transpile and run")
-        print("  python kilat.py program.klt --native     # Run with native interpreter")
-        print("  python kilat.py program.klt --compile-only  # Just compile to Python")
+    args = sys.argv[1:]
+
+    if not args or '--help' in args or '-h' in args:
+        print(_USAGE)
+        sys.exit(0 if args else 1)
+
+    if '--version' in args:
+        print(f"Kilat-Lang {__version__}")
+        sys.exit(0)
+
+    # REPL mode
+    if '--repl' in args or args[0] == '--repl':
+        from kilat_repl import KilatREPL
+        KilatREPL().run()
+        return
+
+    source_file = args[0]
+    if not source_file.endswith('.klt') and not os.path.exists(source_file):
+        print(f"Ralat: Fail '{source_file}' tidak ditemui", file=sys.stderr)
         sys.exit(1)
-    
-    source_file = sys.argv[1]
-    
+
     if not os.path.exists(source_file):
-        print(f"Error: File '{source_file}' not found", file=sys.stderr)
+        print(f"Ralat: Fail '{source_file}' tidak ditemui", file=sys.stderr)
         sys.exit(1)
-    
-    # Check for native mode
-    if '--native' in sys.argv:
-        # Use native interpreter
+
+    # Native interpreter mode
+    if '--native' in args:
         from kilat_interpreter import run_kilat
-        
         with open(source_file, 'r', encoding='utf-8') as f:
-            source_code = f.read()
-        
+            source = f.read()
         try:
-            run_kilat(source_code)
+            run_kilat(source, filename=source_file)
+        except SystemExit:
+            raise
         except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
-            import traceback
-            traceback.print_exc()
+            print(f"Ralat: {e}", file=sys.stderr)
             sys.exit(1)
-    
-    elif '--compile-only' in sys.argv:
-        # Compile only mode
-        compiler = KilatCompiler(source_file=source_file)
+        return
+
+    # Compile-only mode
+    if '--compile-only' in args:
         output_file = None
-        if '-o' in sys.argv:
+        if '-o' in args:
             try:
-                output_index = sys.argv.index('-o')
-                output_file = sys.argv[output_index + 1]
-            except (IndexError, ValueError):
-                print("Error: -o flag requires an output filename", file=sys.stderr)
+                output_file = args[args.index('-o') + 1]
+            except IndexError:
+                print("Ralat: -o memerlukan nama fail output", file=sys.stderr)
                 sys.exit(1)
-        
-        output_file = compiler.compile_and_save(output_file)
-        print(f"Compiled successfully to: {output_file}")
-    
-    else:
-        # Compile and run mode (default - transpile to Python)
+
         compiler = KilatCompiler(source_file=source_file)
-        compiler.compile_and_run()
+        saved = compiler.compile_and_save(output_file)
+        print(f"Berjaya dikompil ke: {saved}")
+        return
+
+    # Default: transpile and run
+    compiler = KilatCompiler(source_file=source_file)
+    compiler.compile_and_run()
 
 
 if __name__ == '__main__':

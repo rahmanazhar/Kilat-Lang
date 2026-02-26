@@ -1,0 +1,102 @@
+# Kalkulator Lanjutan — contoh program lengkap menggunakan kelas
+
+kelas Kalkulator:
+    fungsi __init__(self):
+        self.sejarah = []
+        self.hasil_terakhir = 0
+
+    fungsi tambah(self, a, b):
+        hasil = a + b
+        self._simpan_sejarah(f"{a} + {b} = {hasil}")
+        self.hasil_terakhir = hasil
+        kembali hasil
+
+    fungsi tolak(self, a, b):
+        hasil = a - b
+        self._simpan_sejarah(f"{a} - {b} = {hasil}")
+        self.hasil_terakhir = hasil
+        kembali hasil
+
+    fungsi darab(self, a, b):
+        hasil = a * b
+        self._simpan_sejarah(f"{a} * {b} = {hasil}")
+        self.hasil_terakhir = hasil
+        kembali hasil
+
+    fungsi bahagi(self, a, b):
+        jika b == 0:
+            bangkit "Tidak boleh bahagi dengan sifar!"
+        hasil = a / b
+        self._simpan_sejarah(f"{a} / {b} = {hasil}")
+        self.hasil_terakhir = hasil
+        kembali hasil
+
+    fungsi modulo(self, a, b):
+        hasil = a % b
+        self._simpan_sejarah(f"{a} % {b} = {hasil}")
+        self.hasil_terakhir = hasil
+        kembali hasil
+
+    fungsi kuasa(self, a, b):
+        hasil = a ** b
+        self._simpan_sejarah(f"{a} ** {b} = {hasil}")
+        self.hasil_terakhir = hasil
+        kembali hasil
+
+    fungsi _simpan_sejarah(self, operasi):
+        self.sejarah.append(operasi)
+
+    fungsi papar_sejarah(self):
+        cetak("\n=== Sejarah Operasi ===")
+        jika panjang(self.sejarah) == 0:
+            cetak("Tiada sejarah")
+        atau:
+            untuk diulang i dalam julat(panjang(self.sejarah)):
+                cetak(f"{i + 1}. {self.sejarah[i]}")
+
+    fungsi kosongkan_sejarah(self):
+        self.sejarah = []
+        cetak("Sejarah dikosongkan")
+
+
+# Buat kalkulator
+kalk = Kalkulator()
+
+cetak("=== Kalkulator Lanjutan ===")
+cetak()
+
+# Operasi asas
+a = 15
+b = 4
+
+cetak(f"{a} + {b} = {kalk.tambah(a, b)}")
+cetak(f"{a} - {b} = {kalk.tolak(a, b)}")
+cetak(f"{a} * {b} = {kalk.darab(a, b)}")
+cetak(f"{a} / {b} = {kalk.bahagi(a, b)}")
+cetak(f"{a} % {b} = {kalk.modulo(a, b)}")
+cetak(f"{a} ** {b} = {kalk.kuasa(a, b)}")
+
+# Sejarah
+kalk.papar_sejarah()
+
+# Cuba bahagi dengan sifar
+cetak("\n--- Ujian bahagi sifar ---")
+cuba:
+    kalk.bahagi(10, 0)
+tangkap:
+    cetak("Pengecualian: tidak boleh bahagi dengan sifar!")
+
+# Fungsi statik luar kelas
+fungsi kira_faktorian(n):
+    jika n < 0:
+        bangkit "Faktorial tidak wujud untuk nombor negatif"
+    jika n == 0 atau_logik n == 1:
+        kembali 1
+    hasil = 1
+    untuk diulang i dalam julat(2, n + 1):
+        hasil *= i
+    kembali hasil
+
+cetak("\n=== Faktorial ===")
+untuk diulang n dalam [0, 1, 5, 10]:
+    cetak(f"{n}! = {kira_faktorian(n)}")

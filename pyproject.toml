@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "kilat-lang"
+version = "1.0.0"
+description = "Bahasa pengaturcaraan sintaks Melayu -- Malay-syntax programming language"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["malay", "programming language", "compiler", "interpreter", "bahasa melayu"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Software Development :: Interpreters",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Natural Language :: Malay",
+]
+
+[project.scripts]
+kilat = "kilat:main"
+
+[project.urls]
+Homepage = "https://github.com/kilat-lang/kilat"
+Repository = "https://github.com/kilat-lang/kilat"
+Issues = "https://github.com/kilat-lang/kilat/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kilat*"]
+
+[tool.setuptools.package-data]
+"*" = ["examples/*.klt"]

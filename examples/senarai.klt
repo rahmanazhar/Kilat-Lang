@@ -1,0 +1,57 @@
+# Contoh operasi senarai (list) dalam Kilat-Lang
+
+cetak("=== Operasi Senarai ===")
+
+# Buat senarai
+nombor = [5, 2, 8, 1, 9, 3]
+cetak("Senarai asal:", nombor)
+
+# Panjang senarai
+cetak("Bilangan elemen:", panjang(nombor))
+
+# Akses elemen
+cetak("Elemen pertama:", nombor[0])
+cetak("Elemen terakhir:", nombor[-1])
+
+# Ubah elemen
+nombor[0] = 100
+cetak("Selepas ubah elemen pertama:", nombor)
+
+# Tambah elemen
+nombor.append(42)
+cetak("Selepas tambah:", nombor)
+
+# Isih senarai
+salin = disusun(nombor)
+cetak("Tersusun:", salin)
+
+# Balik senarai
+nombor.reverse()
+cetak("Terbalik:", nombor)
+
+# Cari dalam senarai
+jika 42 dalam nombor:
+    cetak("42 dijumpai!")
+atau:
+    cetak("42 tidak dijumpai")
+
+cetak("\n=== Operasi Lanjutan ===")
+
+# Jumlah
+cetak("Jumlah:", jumlah(nombor))
+cetak("Maks:", maks(nombor))
+cetak("Min:", min(nombor))
+
+# Gabung dua senarai
+a = [1, 2, 3]
+b = [4, 5, 6]
+gabungan = a + b
+cetak("Gabungan:", gabungan)
+
+# Senarai dalam senarai (matriks)
+matriks = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+cetak("\nMatriks 3x3:")
+untuk diulang baris dalam matriks:
+    untuk diulang elemen dalam baris:
+        cetak(elemen, end=" ")
+    cetak()
