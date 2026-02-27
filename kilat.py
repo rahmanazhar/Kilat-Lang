@@ -8,6 +8,9 @@ Mod:
   2. Transpile (lalai)     — transpil ke Python dan jalankan
   3. Compile (--compile-only) — hanya transpil, simpan fail .py
   4. REPL   (--repl)       — shell interaktif
+  5. Bytecode (--bytecode) — kompil ke kod bait dan jalankan pada VM
+  6. Compile BC (--compile-bc) — kompil ke fail .klc sahaja
+  7. Run KLC (--run-klc)   — jalankan fail .klc yang telah dikompil
 """
 
 import sys
@@ -71,15 +74,21 @@ Penggunaan: kilat <fail.klt> [pilihan]
 
 Pilihan:
   --native          Jalankan dengan interpreter asli (tanpa Python)
+  --bytecode        Kompil ke kod bait dan jalankan pada VM
+  --compile-bc      Kompil ke fail .klc sahaja
+  --run-klc         Jalankan fail .klc yang telah dikompil
   --repl            Buka shell interaktif (REPL)
   --compile-only    Transpil ke Python tanpa menjalankan
-  -o <fail.py>      Fail output untuk --compile-only
+  -o <fail>         Fail output untuk --compile-only / --compile-bc
   --version         Papar versi
   --help, -h        Papar bantuan ini
 
 Contoh:
   kilat program.klt              # Transpil dan jalankan
   kilat program.klt --native     # Jalankan dengan interpreter asli
+  kilat program.klt --bytecode   # Kompil + jalankan via VM
+  kilat program.klt --compile-bc # Kompil ke program.klc
+  kilat program.klc --run-klc    # Jalankan fail .klc
   kilat program.klt --compile-only -o output.py
   kilat --repl                   # Shell interaktif
 """
@@ -118,6 +127,58 @@ def main():
             source = f.read()
         try:
             run_kilat(source, filename=source_file)
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"Ralat: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # Bytecode VM mode: compile and run via VM
+    if '--bytecode' in args:
+        from kilat_vm import run_bytecode
+        with open(source_file, 'r', encoding='utf-8') as f:
+            source = f.read()
+        try:
+            run_bytecode(source, filename=source_file)
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"Ralat: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+
+    # Compile to .klc bytecode file
+    if '--compile-bc' in args:
+        from kilat_compiler import compile_kilat
+        from kilat_bytecode import serialize_code
+        with open(source_file, 'r', encoding='utf-8') as f:
+            source = f.read()
+        code = compile_kilat(source, filename=source_file)
+        output_file = None
+        if '-o' in args:
+            try:
+                output_file = args[args.index('-o') + 1]
+            except IndexError:
+                print("Ralat: -o memerlukan nama fail output", file=sys.stderr)
+                sys.exit(1)
+        if output_file is None:
+            output_file = os.path.splitext(source_file)[0] + '.klc'
+        with open(output_file, 'wb') as f:
+            f.write(serialize_code(code))
+        print(f"Berjaya dikompil ke kod bait: {output_file}")
+        return
+
+    # Run pre-compiled .klc file
+    if '--run-klc' in args:
+        from kilat_bytecode import deserialize_code
+        from kilat_vm import KilatVM
+        with open(source_file, 'rb') as f:
+            data = f.read()
+        code = deserialize_code(data)
+        vm = KilatVM()
+        try:
+            vm.run(code)
         except SystemExit:
             raise
         except Exception as e:

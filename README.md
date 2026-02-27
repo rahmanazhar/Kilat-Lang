@@ -7,10 +7,12 @@ Kilat-Lang ialah bahasa pengaturcaraan yang menggunakan kata kunci Bahasa Melayu
 ## Ciri-ciri
 
 - Sintaks Bahasa Melayu yang mudah difahami
-- Dua mod pelaksanaan: Transpile (bergantung Python) dan Native (interpreter bebas)
+- Tiga mod pelaksanaan: Transpile, Native (interpreter), dan Bytecode (kompiler + VM)
+- Kompiler kod bait dengan mesin maya tindanan (stack-based VM)
+- Fail `.klc` — format binari boleh agih untuk program yang telah dikompil
 - Sokongan penuh: fungsi, kelas, warisan, pengendalian pengecualian, modul
 - F-string, argumen kata kunci, tugasan bertambah (`+=`, `-=`, dll.)
-- 123 ujian automatik — semua lulus
+- 248 ujian automatik — semua lulus (123 native + 125 bytecode)
 - Shell interaktif (REPL)
 - 10 program contoh yang lengkap
 
@@ -42,6 +44,22 @@ python kilat.py program.klt
 
 # Mod native — interpreter asli, tanpa kebergantungan Python
 python kilat.py program.klt --native
+
+# Mod bytecode — kompil ke kod bait dan jalankan pada VM
+python kilat.py program.klt --bytecode
+```
+
+### Kompil ke kod bait (.klc)
+
+```bash
+# Kompil ke fail .klc
+python kilat.py program.klt --compile-bc
+
+# Kompil dengan nama fail tersuai
+python kilat.py program.klt --compile-bc -o output.klc
+
+# Jalankan fail .klc yang telah dikompil
+python kilat.py program.klc --run-klc
 ```
 
 ### Shell interaktif (REPL)
@@ -58,7 +76,7 @@ kilat> cetak(x * 2)
 kilat> keluar
 ```
 
-### Kompil sahaja (tanpa jalankan)
+### Transpil ke Python
 
 ```bash
 python kilat.py program.klt --compile-only
@@ -253,11 +271,15 @@ Kilat-Lang/
 ├── kilat_lexer2.py           # Pengtoken lengkap (mod native)
 ├── kilat_parser.py           # Parser penurunan rekursif
 ├── kilat_interpreter.py      # Interpreter berjalan-pokok
+├── kilat_bytecode.py         # Definisi opkod dan objek kod bait
+├── kilat_compiler.py         # Kompiler AST → kod bait
+├── kilat_vm.py               # Mesin maya tindanan (stack-based VM)
 ├── kilat_translator.py       # Penterjemah Kilat -> Python (mod transpile)
 ├── kilat_lexer.py            # Pengtoken mudah (mod transpile)
 ├── kilat_keywords.py         # Pemetaan kata kunci Melayu <-> Python
 ├── kilat_repl.py             # Shell interaktif (REPL)
-├── test_native.py            # Suite 123 ujian automatik
+├── test_native.py            # Suite 123 ujian interpreter
+├── test_bytecode.py          # Suite 125 ujian kod bait
 ├── pyproject.toml            # Konfigurasi pakej
 └── examples/
     ├── hello_world.klt       # Program pertama
@@ -275,14 +297,18 @@ Kilat-Lang/
 ## Menguji
 
 ```bash
-# Jalankan semua 123 ujian
+# Jalankan semua ujian interpreter (123 ujian)
 python test_native.py
+
+# Jalankan semua ujian kod bait (125 ujian)
+python test_bytecode.py
 
 # Verbose (tunjuk setiap ujian)
 python test_native.py -v
+python test_bytecode.py -v
 ```
 
-Kategori ujian: Aritmetik, Perbandingan, Pemboleh Ubah, Syarat, Gelung, Fungsi, Struktur Data, F-String, OOP, Pengecualian, Fungsi Terbina, Kaedah Rentetan, Kaedah Senarai, Skop, Import.
+Kategori ujian: Aritmetik, Perbandingan, Pemboleh Ubah, Syarat, Gelung, Fungsi, Struktur Data, F-String, OOP, Pengecualian, Fungsi Terbina, Kaedah Rentetan, Kaedah Senarai, Skop, Import, Siri (Serialization).
 
 ## Cara Kerja
 
@@ -312,7 +338,23 @@ Kod Kilat (.klt)
   Output
 ```
 
-Mod native melaksanakan keseluruhan saluran paip kompilasi (leksikal → sintaks → semantik → pelaksanaan) tanpa bergantung pada Python.
+### Mod Bytecode (--bytecode)
+
+```
+Kod Kilat (.klt)
+      |
+  [kilat_lexer2.py]       — tokenisasi penuh
+      |
+  [kilat_parser.py]       — bina AST
+      |
+  [kilat_compiler.py]     — kompil AST → kod bait (50+ opkod)
+      |
+  [kilat_vm.py]           — laksanakan pada mesin maya tindanan
+      |
+  Output
+```
+
+Mod bytecode mengkompil kod sumber ke arahan kod bait (bytecode) dan melaksanakannya pada mesin maya tindanan (stack-based VM). Program yang telah dikompil boleh disimpan sebagai fail `.klc` dan diagihkan tanpa kod sumber asal.
 
 ## Sumbangan
 
