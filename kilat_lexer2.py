@@ -130,39 +130,62 @@ class KilatLexer2:
     """Complete lexer for Kilat-Lang"""
 
     KEYWORDS = {
-        'jika': TokenType.JIKA,
-        'ataujika': TokenType.ATAUJIKA,
-        'atau': TokenType.ATAU,
-        'untuk': TokenType.UNTUK,
-        'diulang': TokenType.DIULANG,
+        # Control flow — new primary keywords
+        'kalau': TokenType.JIKA,        # if (new)
+        'selain': TokenType.ATAU,        # else (new)
+        'ulang': TokenType.UNTUK,        # for (new, single word)
+        'atau': TokenType.ATAU_LOGIK,    # or (new — 'atau' now means logical or)
+        'kecuali': TokenType.TANGKAP,    # except (new)
+        'cetuskan': TokenType.BANGKIT,   # raise (new)
+        'masuk': TokenType.IMPORT,       # import (new)
+
+        # Control flow — unchanged
         'selagi': TokenType.SELAGI,
         'berhenti': TokenType.BERHENTI,
         'teruskan': TokenType.TERUSKAN,
         'kembali': TokenType.KEMBALI,
         'lulus': TokenType.LULUS,
+
+        # Functions and classes
         'fungsi': TokenType.FUNGSI,
         'kelas': TokenType.KELAS,
+
+        # Literals
         'benar': TokenType.BENAR,
         'salah': TokenType.SALAH,
         'tiada': TokenType.TIADA,
+
+        # Logical — unchanged
         'dan': TokenType.DAN,
-        'atau_logik': TokenType.ATAU_LOGIK,
         'bukan': TokenType.BUKAN,
         'dalam': TokenType.DALAM,
         'adalah': TokenType.ADALAH,
+
+        # Exception — unchanged
         'cuba': TokenType.CUBA,
-        'tangkap': TokenType.TANGKAP,
         'akhirnya': TokenType.AKHIRNYA,
-        'bangkit': TokenType.BANGKIT,
-        'import': TokenType.IMPORT,
+
+        # Import — unchanged
         'dari': TokenType.DARI,
         'sebagai': TokenType.SEBAGAI,
+
+        # Scope — unchanged
         'global': TokenType.GLOBAL,
-        'nonlokal': TokenType.NONLOKAL,
         'padam': TokenType.PADAM,
         'dengan': TokenType.DENGAN,
         'berikan': TokenType.BERIKAN,
         'lambda': TokenType.LAMBDA,
+
+        # Old keywords — backward compatibility aliases
+        'jika': TokenType.JIKA,          # old: if
+        'ataujika': TokenType.ATAUJIKA,  # old: elif
+        'untuk': TokenType.UNTUK,        # old: for (multi-word handled separately)
+        'diulang': TokenType.DIULANG,    # old: part of "untuk diulang"
+        'atau_logik': TokenType.ATAU_LOGIK,  # old: or
+        'tangkap': TokenType.TANGKAP,    # old: except
+        'bangkit': TokenType.BANGKIT,    # old: raise
+        'import': TokenType.IMPORT,      # old: import
+        'nonlokal': TokenType.NONLOKAL,  # old: nonlocal
     }
 
     def __init__(self, source: str):
@@ -318,22 +341,39 @@ class KilatLexer2:
         while self.peek() and (self.peek().isalnum() or self.peek() == '_'):
             identifier += self.advance()
 
-        # Check for multi-word keyword: "untuk diulang"
-        if identifier == 'untuk':
+        # Check for multi-word keywords
+        if identifier in ('untuk', 'kalau', 'bukan'):
             saved_pos = self.pos
             saved_line = self.line
             saved_col = self.column
             # Skip spaces
-            spaces = ''
             while self.peek() == ' ':
-                spaces += self.advance()
-            if self.source[self.pos:self.pos + 7] == 'diulang':
-                # Check that 'diulang' is a complete word
+                self.advance()
+
+            if identifier == 'untuk' and self.source[self.pos:self.pos + 7] == 'diulang':
+                # "untuk diulang" → for loop
                 end_pos = self.pos + 7
                 if end_pos >= len(self.source) or not (self.source[end_pos].isalnum() or self.source[end_pos] == '_'):
                     for _ in range(7):
                         self.advance()
                     return Token(TokenType.UNTUK, 'untuk diulang', start_line, start_col)
+
+            elif identifier == 'kalau' and self.source[self.pos:self.pos + 5] == 'tidak':
+                # "kalau tidak" → elif
+                end_pos = self.pos + 5
+                if end_pos >= len(self.source) or not (self.source[end_pos].isalnum() or self.source[end_pos] == '_'):
+                    for _ in range(5):
+                        self.advance()
+                    return Token(TokenType.ATAUJIKA, 'kalau tidak', start_line, start_col)
+
+            elif identifier == 'bukan' and self.source[self.pos:self.pos + 5] == 'lokal':
+                # "bukan lokal" → nonlocal
+                end_pos = self.pos + 5
+                if end_pos >= len(self.source) or not (self.source[end_pos].isalnum() or self.source[end_pos] == '_'):
+                    for _ in range(5):
+                        self.advance()
+                    return Token(TokenType.NONLOKAL, 'bukan lokal', start_line, start_col)
+
             # Not a match, restore
             self.pos = saved_pos
             self.line = saved_line

@@ -5,11 +5,11 @@ cetak("=== Contoh If-Else ===")
 # Contoh mudah
 nombor = 10
 
-jika nombor > 0:
+kalau nombor > 0:
     cetak("Nombor adalah positif")
-ataujika nombor < 0:
+kalau tidak nombor < 0:
     cetak("Nombor adalah negatif")
-atau:
+selain:
     cetak("Nombor adalah sifar")
 
 # Contoh dengan operator logik
@@ -17,15 +17,15 @@ umur = 20
 ada_lesen = benar
 
 cetak("\n=== Semak Kelayakan Memandu ===")
-jika umur >= 18 dan ada_lesen:
+kalau umur >= 18 dan ada_lesen:
     cetak("Anda boleh memandu!")
-atau:
+selain:
     cetak("Anda tidak boleh memandu")
 
 # Contoh dengan loop
 cetak("\n=== Cari Nombor Genap ===")
-untuk diulang i dalam julat(1, 11):
-    jika i % 2 == 0:
+ulang i dalam julat(1, 11):
+    kalau i % 2 == 0:
         cetak(i, "adalah genap")
-    atau:
+    selain:
         cetak(i, "adalah ganjil")

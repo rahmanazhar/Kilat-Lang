@@ -227,11 +227,17 @@ class KilatVM:
 
         builtins = {
             'cetak': _cetak, 'input': _input, 'panjang': _panjang,
-            'julat': _julat, 'jenis': _jenis, 'abs': _abs,
-            'maks': _max, 'min': _min, 'jumlah': _sum,
-            'disusun': _disusun, 'terbalik': _terbalik,
+            'julat': _julat, 'jenis': _jenis,
+            'abs': _abs, 'mutlak': _abs,
+            'maks': _max, 'maksimum': _max,
+            'min': _min, 'minimum': _min,
+            'jumlah': _sum,
+            'disusun': _disusun, 'susun': _disusun,
+            'terbalik': _terbalik,
             'nombor_senarai': _nombor_senarai, 'cantum': _cantum,
-            'int': _int, 'float': _float, 'str': _str,
+            'int': _int, 'nombor': _int,
+            'float': _float, 'perpuluhan': _float,
+            'str': _str, 'teks': _str,
             'list': _list, 'dict': _dict, 'set': _set,
             'tuple': _tuple, 'bool': _bool,
             'punca': _punca, 'kuasa': _kuasa, 'bulat': _bulat,
@@ -644,6 +650,34 @@ class KilatVM:
                         parts.insert(0, frame.pop())
                     frame.push(''.join(str(p) for p in parts))
 
+                elif op == OpCode.BUILD_TUPLE:
+                    elements = []
+                    for _ in range(arg):
+                        elements.insert(0, frame.pop())
+                    frame.push(tuple(elements))
+
+                elif op == OpCode.BUILD_SLICE:
+                    step = frame.pop()
+                    stop = frame.pop()
+                    start = frame.pop()
+                    frame.push(slice(start, stop, step))
+
+                elif op == OpCode.UNPACK_SEQUENCE:
+                    value = frame.pop()
+                    try:
+                        items = list(value)
+                    except TypeError:
+                        raise KilatRuntimeError(
+                            f"Tidak dapat membuka nilai jenis '{type(value).__name__}'",
+                            instr.line)
+                    if len(items) != arg:
+                        raise KilatRuntimeError(
+                            f"Dijangka {arg} nilai untuk pembukaan, dapat {len(items)}",
+                            instr.line)
+                    # Push in reverse so first STORE_NAME gets first value
+                    for item in reversed(items):
+                        frame.push(item)
+
                 # ---- Exception handling ----
                 elif op == OpCode.SETUP_TRY:
                     frame.try_stack.append(arg)  # handler address
@@ -753,23 +787,37 @@ class KilatVM:
 
         params = func.code.param_names
         required_count = func.code.param_count - len(func.defaults)
+        var_args_name = getattr(func.code, 'var_args', None)
+        kw_args_name = getattr(func.code, 'kw_args', None)
 
         # Bind positional arguments
-        for i, val in enumerate(args):
-            if i >= len(params):
-                raise KilatRuntimeError(
-                    f"Fungsi '{func.name}' menerima paling banyak "
-                    f"{len(params)} argumen, diberi {len(args)}",
-                    instr.line)
-            func_env.define(params[i], val)
+        bound_count = min(len(args), len(params))
+        for i in range(bound_count):
+            func_env.define(params[i], args[i])
+
+        # Collect extra positional args into *args
+        if var_args_name:
+            func_env.define(var_args_name, tuple(args[len(params):]))
+        elif len(args) > len(params):
+            raise KilatRuntimeError(
+                f"Fungsi '{func.name}' menerima paling banyak "
+                f"{len(params)} argumen, diberi {len(args)}",
+                instr.line)
 
         # Bind keyword arguments
+        extra_kwargs = {}
         for kw_name, kw_val in kwargs.items():
-            if kw_name not in params:
+            if kw_name in params:
+                func_env.define(kw_name, kw_val)
+            elif kw_args_name:
+                extra_kwargs[kw_name] = kw_val
+            else:
                 raise KilatRuntimeError(
                     f"Fungsi '{func.name}' tidak ada parameter '{kw_name}'",
                     instr.line)
-            func_env.define(kw_name, kw_val)
+
+        if kw_args_name:
+            func_env.define(kw_args_name, extra_kwargs)
 
         # Fill in defaults for unbound parameters
         for i in range(len(params)):

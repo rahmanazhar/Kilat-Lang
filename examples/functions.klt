@@ -16,9 +16,9 @@ fungsi pendarab(x, faktor=2):
 
 # Fungsi untuk kira faktorial
 fungsi faktorial(n):
-    jika n <= 1:
+    kalau n <= 1:
         kembali 1
-    atau:
+    selain:
         kembali n * faktorial(n - 1)
 
 # Panggil fungsi
@@ -34,7 +34,7 @@ cetak("Faktorial 5 =", faktorial(5))
 
 # Fungsi dengan loop
 fungsi cetak_senarai(senarai):
-    untuk diulang item dalam senarai:
+    ulang item dalam senarai:
         cetak("-", item)
 
 cetak("\nSenarai hobi:")

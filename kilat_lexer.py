@@ -43,7 +43,7 @@ class KilatLexer:
         
         # Use regex to split by word boundaries while preserving strings
         # This regex captures strings, multi-word keywords, operators (multi-char first), and single chars
-        pattern = r'(""".*?"""|\'\'\'.*?\'\'\'|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|untuk diulang|atau_logik|tidak_dalam|bukan_adalah|==|!=|<=|>=|//|\*\*|\w+|[^\w\s])'
+        pattern = r'(""".*?"""|\'\'\'.*?\'\'\'|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|kalau tidak|bukan lokal|untuk diulang|atau_logik|tidak_dalam|bukan_adalah|==|!=|<=|>=|//|\*\*|\w+|[^\w\s])'
         
         tokens = re.findall(pattern, stripped_line, re.DOTALL)
         
@@ -61,10 +61,16 @@ class KilatLexer:
             # Check if it's a Kilat keyword
             elif token in KILAT_TO_PYTHON:
                 translated_tokens.append(KILAT_TO_PYTHON[token])
-            # Check for multi-word keywords like "untuk diulang"
+            # Check for multi-word keywords
             elif token == 'untuk' and i + 1 < len(tokens) and tokens[i + 1] == 'diulang':
                 translated_tokens.append(KILAT_TO_PYTHON['untuk diulang'])
                 i += 1  # Skip next token
+            elif token == 'kalau' and i + 1 < len(tokens) and tokens[i + 1] == 'tidak':
+                translated_tokens.append(KILAT_TO_PYTHON['kalau tidak'])
+                i += 1
+            elif token == 'bukan' and i + 1 < len(tokens) and tokens[i + 1] == 'lokal':
+                translated_tokens.append(KILAT_TO_PYTHON['bukan lokal'])
+                i += 1
             else:
                 # Keep as-is (identifiers, numbers, operators, etc.)
                 translated_tokens.append(token)

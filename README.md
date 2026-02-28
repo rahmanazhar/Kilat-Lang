@@ -98,10 +98,10 @@ python kilat.py --help
 |---|---|---|
 | `cetak` | `print` | Cetak output |
 | `input` | `input` | Baca input pengguna |
-| `jika` | `if` | Pernyataan bersyarat |
-| `ataujika` | `elif` | Else-if |
-| `atau` | `else` | Else |
-| `untuk diulang` | `for` | Gelung for |
+| `kalau` | `if` | Pernyataan bersyarat |
+| `kalau tidak` | `elif` | Else-if |
+| `selain` | `else` | Else |
+| `ulang` | `for` | Gelung for |
 | `selagi` | `while` | Gelung while |
 | `berhenti` | `break` | Keluar gelung |
 | `teruskan` | `continue` | Terus ke ulangan berikut |
@@ -113,19 +113,19 @@ python kilat.py --help
 | `salah` | `False` | Boolean salah |
 | `tiada` | `None` | Nilai kosong |
 | `dan` | `and` | DAN logik |
-| `atau_logik` | `or` | ATAU logik |
+| `atau` | `or` | ATAU logik |
 | `bukan` | `not` | BUKAN logik |
 | `dalam` | `in` | Operator keahlian |
 | `adalah` | `is` | Operator identiti |
 | `cuba` | `try` | Blok cuba |
-| `tangkap` | `except` | Tangkap pengecualian |
+| `kecuali` | `except` | Tangkap pengecualian |
 | `akhirnya` | `finally` | Blok akhirnya |
-| `bangkit` | `raise` | Bangkitkan pengecualian |
-| `import` | `import` | Import modul |
+| `cetuskan` | `raise` | Bangkitkan pengecualian |
+| `masuk` | `import` | Import modul |
 | `dari` | `from` | Import dari |
 | `sebagai` | `as` | Alias |
 | `global` | `global` | Skop global |
-| `nonlokal` | `nonlocal` | Skop bukan-lokal |
+| `bukan lokal` | `nonlocal` | Skop bukan-lokal |
 | `padam` | `del` | Padam pemboleh ubah |
 
 ### Fungsi Terbina (Built-in)
@@ -136,14 +136,14 @@ python kilat.py --help
 | `julat(n)` / `julat(a, b)` / `julat(a, b, l)` | Jana senarai nombor |
 | `panjang(x)` | Bilangan elemen |
 | `jenis(x)` | Jenis data |
-| `abs(x)` | Nilai mutlak |
-| `maks(senarai)` | Nilai maksimum |
-| `min(senarai)` | Nilai minimum |
+| `mutlak(x)` | Nilai mutlak |
+| `maksimum(senarai)` | Nilai maksimum |
+| `minimum(senarai)` | Nilai minimum |
 | `jumlah(senarai)` | Jumlah semua elemen |
-| `disusun(senarai)` | Senarai tersusun (baru) |
+| `susun(senarai)` | Senarai tersusun (baru) |
 | `terbalik(senarai)` | Senarai terbalik (baru) |
 | `bulat(x)` | Bulatkan nombor |
-| `int(x)` / `float(x)` / `str(x)` | Tukar jenis data |
+| `nombor(x)` / `perpuluhan(x)` / `teks(x)` | Tukar jenis data |
 | `peta(fungsi, senarai)` | Guna fungsi pada setiap elemen |
 | `tapis(fungsi, senarai)` | Tapis elemen |
 | `nombor_senarai(senarai)` | Tambah indeks (enumerate) |
@@ -163,10 +163,10 @@ cetak(f"Nama: {nama}, Umur: {umur} tahun")
 ### Gelung dan Syarat
 
 ```kilat
-untuk diulang i dalam julat(1, 11):
-    jika i % 2 == 0:
+ulang i dalam julat(1, 11):
+    kalau i % 2 == 0:
         cetak(i, "genap")
-    atau:
+    selain:
         cetak(i, "ganjil")
 ```
 
@@ -174,9 +174,9 @@ untuk diulang i dalam julat(1, 11):
 
 ```kilat
 fungsi salam(nama, bahasa="Melayu"):
-    jika bahasa == "Melayu":
+    kalau bahasa == "Melayu":
         cetak(f"Selamat datang, {nama}!")
-    atau:
+    selain:
         cetak(f"Welcome, {nama}!")
 
 salam("Ahmad")
@@ -187,9 +187,9 @@ salam("John", "Inggeris")
 
 ```kilat
 fungsi faktorial(n):
-    jika n <= 1:
+    kalau n <= 1:
         kembali 1
-    atau:
+    selain:
         kembali n * faktorial(n - 1)
 
 cetak("5! =", faktorial(5))   # 120
@@ -223,14 +223,14 @@ buddy.ambil()        # Buddy ambil bola!
 
 ```kilat
 fungsi bahagi(a, b):
-    jika b == 0:
-        bangkit "Tidak boleh bahagi dengan sifar!"
+    kalau b == 0:
+        cetuskan "Tidak boleh bahagi dengan sifar!"
     kembali a / b
 
 cuba:
     cetak(bahagi(10, 2))    # 5.0
     cetak(bahagi(10, 0))    # akan bangkitkan pengecualian
-tangkap:
+kecuali:
     cetak("Ralat ditangkap!")
 akhirnya:
     cetak("Selesai.")
@@ -239,15 +239,15 @@ akhirnya:
 ### Tugasan Bertambah dan Kaedah Senarai
 
 ```kilat
-nombor = [3, 1, 4, 1, 5, 9]
-nombor.append(2)
-nombor.sort()
-cetak(nombor)               # [1, 1, 2, 3, 4, 5, 9]
-cetak("Jumlah:", jumlah(nombor))
-cetak("Maks:", maks(nombor))
+nombor_senarai = [3, 1, 4, 1, 5, 9]
+nombor_senarai.append(2)
+nombor_senarai.sort()
+cetak(nombor_senarai)               # [1, 1, 2, 3, 4, 5, 9]
+cetak("Jumlah:", jumlah(nombor_senarai))
+cetak("Maks:", maksimum(nombor_senarai))
 
 kiraan = 0
-untuk diulang n dalam nombor:
+ulang n dalam nombor_senarai:
     kiraan += n
 cetak("Kiraan manual:", kiraan)
 ```
@@ -255,11 +255,11 @@ cetak("Kiraan manual:", kiraan)
 ### Import Modul
 
 ```kilat
-import math
+masuk math
 cetak(math.floor(3.9))      # 3
 
-dari math import sqrt
-cetak(int(sqrt(144)))       # 12
+dari math masuk sqrt
+cetak(nombor(sqrt(144)))    # 12
 ```
 
 ## Struktur Projek

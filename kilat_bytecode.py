@@ -114,8 +114,17 @@ class OpCode(IntEnum):
     IMPORT_MODULE = 140    # arg: module name index in names
     IMPORT_FROM = 141      # arg: name index (attribute to import)
 
+    # Tuples
+    BUILD_TUPLE = 126      # arg: number of elements
+
+    # Slicing
+    BUILD_SLICE = 127      # arg: number of components (2 or 3)
+
     # Scope
     DECLARE_GLOBAL = 150   # arg: name index
+
+    # Unpacking
+    UNPACK_SEQUENCE = 160  # arg: number of targets
 
 
 # ------------------------------------------------------------------ #
@@ -152,6 +161,8 @@ class CodeObject:
         self.instructions: list = []    # list of Instruction objects
         self.param_count: int = 0       # number of parameters (for functions)
         self.param_names: list = []     # parameter name strings
+        self.var_args: str = None       # *args parameter name (or None)
+        self.kw_args: str = None        # **kwargs parameter name (or None)
 
     # -- helpers for building --
 
@@ -292,6 +303,9 @@ def _serialize_code_obj(buf: bytearray, code: CodeObject):
     buf.extend(struct.pack('<I', len(code.param_names)))
     for pn in code.param_names:
         _serialize_string(buf, pn)
+    # var_args / kw_args
+    _serialize_string(buf, code.var_args or '')
+    _serialize_string(buf, code.kw_args or '')
     # Constants
     buf.extend(struct.pack('<I', len(code.constants)))
     for c in code.constants:
@@ -360,6 +374,11 @@ def _deserialize_code_obj(data: bytes, offset: list) -> CodeObject:
     code.param_count = struct.unpack('<I', _read_bytes(data, offset, 4))[0]
     pn_count = struct.unpack('<I', _read_bytes(data, offset, 4))[0]
     code.param_names = [_read_string(data, offset) for _ in range(pn_count)]
+    # var_args / kw_args
+    va = _read_string(data, offset)
+    code.var_args = va if va else None
+    ka = _read_string(data, offset)
+    code.kw_args = ka if ka else None
     # Constants
     c_count = struct.unpack('<I', _read_bytes(data, offset, 4))[0]
     code.constants = [_read_value(data, offset) for _ in range(c_count)]

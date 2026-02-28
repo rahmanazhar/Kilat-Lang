@@ -7,7 +7,7 @@ cetak("\n--- Contoh 1: Bahagi dengan sifar ---")
 cuba:
     hasil = 10 / 0
     cetak("Tidak sepatutnya sampai sini")
-tangkap:
+kecuali:
     cetak("Ralat ditangkap: Tidak boleh bahagi dengan sifar!")
 
 # Contoh 2: Try-finally
@@ -22,31 +22,31 @@ akhirnya:
 cetak("\n--- Contoh 3: Bangkitkan pengecualian ---")
 
 fungsi bahagi_selamat(a, b):
-    jika b == 0:
-        bangkit "Pembahagi tidak boleh sifar!"
+    kalau b == 0:
+        cetuskan "Pembahagi tidak boleh sifar!"
     kembali a / b
 
 cuba:
     cetak(bahagi_selamat(10, 2))
     cetak(bahagi_selamat(10, 0))
-tangkap:
+kecuali:
     cetak("Pengecualian tersuai ditangkap!")
 
 # Contoh 4: Pengesahan input
 cetak("\n--- Contoh 4: Pengesahan ---")
 
 fungsi semak_umur(umur):
-    jika umur < 0:
-        bangkit "Umur tidak boleh negatif!"
-    jika umur > 150:
-        bangkit "Umur tidak sah!"
+    kalau umur < 0:
+        cetuskan "Umur tidak boleh negatif!"
+    kalau umur > 150:
+        cetuskan "Umur tidak sah!"
     kembali benar
 
-untuk diulang umur_ujian dalam [-1, 25, 200]:
+ulang umur_ujian dalam [-1, 25, 200]:
     cuba:
-        jika semak_umur(umur_ujian):
+        kalau semak_umur(umur_ujian):
             cetak(f"Umur {umur_ujian} adalah sah")
-    tangkap:
+    kecuali:
         cetak(f"Umur {umur_ujian}: pengecualian ditangkap")
 
 cetak("\nSelesai mengendalikan pengecualian!")

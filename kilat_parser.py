@@ -74,6 +74,10 @@ class KilatParser:
         self.skip_newlines()
         token = self.current_token()
 
+        # Decorators: @decorator before fungsi/kelas
+        if token.type == TokenType.AT:
+            return self.parse_decorated()
+
         if token.type == TokenType.JIKA:
             return self.parse_if()
         elif token.type == TokenType.SELAGI:
@@ -112,19 +116,56 @@ class KilatParser:
             return self.parse_nonlocal()
         elif token.type == TokenType.PADAM:
             return self.parse_delete()
+        elif token.type == TokenType.DENGAN:
+            return self.parse_with()
+        elif token.type == TokenType.BERIKAN:
+            return self.parse_yield_stmt()
         else:
             return self.parse_expression_statement()
 
     def parse_expression_statement(self) -> ASTNode:
-        """Parse an expression or assignment (including augmented assignment)."""
+        """Parse an expression or assignment (including augmented and multi-assignment)."""
         expr = self.parse_expression()
 
         token = self.current_token()
 
+        # Check for comma: could be multi-assign LHS or tuple expression
+        if token.type == TokenType.COMMA and isinstance(expr, IdentifierNode):
+            # Collect all comma-separated identifiers
+            saved_pos = self.pos
+            exprs = [expr]
+            all_identifiers = True
+            while self.current_token().type == TokenType.COMMA:
+                self.advance()
+                if self.current_token().type in (TokenType.NEWLINE, TokenType.EOF,
+                                                   TokenType.DEDENT, TokenType.ASSIGN):
+                    break
+                next_expr = self.parse_expression()
+                exprs.append(next_expr)
+                if not isinstance(next_expr, IdentifierNode):
+                    all_identifiers = False
+
+            # Multi-assignment: a, b = value_or_tuple
+            if all_identifiers and self.current_token().type == TokenType.ASSIGN:
+                targets = [e.name for e in exprs]
+                self.advance()  # skip =
+                value = self._parse_tuple_or_expr()
+                self.skip_newlines()
+                return MultiAssignmentNode(
+                    targets=targets, value=value,
+                    line=expr.line, column=expr.column
+                )
+
+            # Not assignment — it's a tuple expression statement
+            self.skip_newlines()
+            if len(exprs) > 1:
+                return TupleNode(elements=exprs, line=expr.line, column=expr.column)
+            return exprs[0]
+
         # Regular assignment: x = value, obj.attr = value, list[i] = value
         if token.type == TokenType.ASSIGN:
             self.advance()  # skip =
-            value = self.parse_expression()
+            value = self._parse_tuple_or_expr()
             self.skip_newlines()
 
             if isinstance(expr, IdentifierNode):
@@ -167,8 +208,6 @@ class KilatParser:
                     value=value, line=expr.line, column=expr.column
                 )
             elif isinstance(expr, IndexNode):
-                # e.g., list[i] += 1  =>  list[i] = list[i] + 1
-                # Store as special IndexAssignment with augmented op
                 augmented_value = BinaryOpNode(
                     left=expr, operator=op,
                     right=value, line=expr.line, column=expr.column
@@ -192,6 +231,23 @@ class KilatParser:
                 self.error("Sasaran tugasan bertambah tidak sah")
 
         self.skip_newlines()
+        return expr
+
+    def _parse_tuple_or_expr(self) -> ASTNode:
+        """Parse expression, optionally collecting comma-separated values as a tuple."""
+        expr = self.parse_expression()
+        if self.current_token().type == TokenType.COMMA:
+            elements = [expr]
+            while self.current_token().type == TokenType.COMMA:
+                self.advance()
+                if self.current_token().type in (TokenType.NEWLINE, TokenType.EOF,
+                                                   TokenType.DEDENT, TokenType.RPAREN,
+                                                   TokenType.RBRACKET, TokenType.SEMICOLON):
+                    break
+                elements.append(self.parse_expression())
+            if len(elements) > 1:
+                return TupleNode(elements=elements,
+                                 line=expr.line, column=expr.column)
         return expr
 
     def parse_block(self) -> List[ASTNode]:
@@ -248,13 +304,23 @@ class KilatParser:
         token = self.expect(TokenType.UNTUK)
         var_token = self.expect(TokenType.IDENTIFIER)
         variable = var_token.value
+        variables = None
+
+        # Check for tuple unpacking: untuk diulang i, v dalam ...
+        if self.current_token().type == TokenType.COMMA:
+            variables = [variable]
+            while self.current_token().type == TokenType.COMMA:
+                self.advance()
+                variables.append(self.expect(TokenType.IDENTIFIER).value)
+            variable = variables[0]
+
         self.expect(TokenType.DALAM)
         iterable = self.parse_expression()
         body = self.parse_block()
         return ForNode(variable=variable, iterable=iterable, body=body,
-                       line=token.line, column=token.column)
+                       variables=variables, line=token.line, column=token.column)
 
-    def parse_function_def(self) -> FunctionDefNode:
+    def parse_function_def(self, decorators=None) -> FunctionDefNode:
         token = self.expect(TokenType.FUNGSI)
         name_token = self.expect(TokenType.IDENTIFIER)
         name = name_token.value
@@ -262,18 +328,28 @@ class KilatParser:
         self.expect(TokenType.LPAREN)
         parameters = []
         defaults = []
+        var_args = None
+        kw_args = None
 
         while self.current_token().type != TokenType.RPAREN:
-            param_token = self.expect(TokenType.IDENTIFIER)
-            parameters.append(param_token.value)
-
-            if self.current_token().type == TokenType.ASSIGN:
+            # **kwargs
+            if self.current_token().type == TokenType.POWER:
                 self.advance()
-                defaults.append(self.parse_expression())
+                kw_args = self.expect(TokenType.IDENTIFIER).value
+            # *args
+            elif self.current_token().type == TokenType.MULTIPLY:
+                self.advance()
+                var_args = self.expect(TokenType.IDENTIFIER).value
             else:
-                # Ensure required params come before default params
-                if defaults:
-                    self.error("Parameter biasa tidak boleh ikut parameter lalai")
+                param_token = self.expect(TokenType.IDENTIFIER)
+                parameters.append(param_token.value)
+
+                if self.current_token().type == TokenType.ASSIGN:
+                    self.advance()
+                    defaults.append(self.parse_expression())
+                else:
+                    if defaults:
+                        self.error("Parameter biasa tidak boleh ikut parameter lalai")
 
             if self.current_token().type == TokenType.COMMA:
                 self.advance()
@@ -289,10 +365,12 @@ class KilatParser:
 
         return FunctionDefNode(
             name=name, parameters=parameters, defaults=defaults,
-            body=body, line=token.line, column=token.column
+            body=body, var_args=var_args, kw_args=kw_args,
+            decorators=decorators or [],
+            line=token.line, column=token.column
         )
 
-    def parse_class_def(self) -> ClassDefNode:
+    def parse_class_def(self, decorators=None) -> ClassDefNode:
         token = self.expect(TokenType.KELAS)
         name_token = self.expect(TokenType.IDENTIFIER)
         name = name_token.value
@@ -306,7 +384,49 @@ class KilatParser:
 
         body = self.parse_block()
         return ClassDefNode(name=name, base_class=base_class, body=body,
+                            decorators=decorators or [],
                             line=token.line, column=token.column)
+
+    def parse_decorated(self) -> ASTNode:
+        """Parse @decorator before fungsi or kelas."""
+        decorators = []
+        while self.current_token().type == TokenType.AT:
+            self.advance()  # skip @
+            decorator = self.parse_expression()
+            decorators.append(decorator)
+            self.skip_newlines()
+
+        token = self.current_token()
+        if token.type == TokenType.FUNGSI:
+            return self.parse_function_def(decorators=decorators)
+        elif token.type == TokenType.KELAS:
+            return self.parse_class_def(decorators=decorators)
+        else:
+            self.error("Penghias (@) hanya boleh digunakan sebelum 'fungsi' atau 'kelas'")
+
+    def parse_with(self) -> WithNode:
+        """Parse: dengan expr sebagai var:"""
+        token = self.expect(TokenType.DENGAN)
+        context_expr = self.parse_expression()
+
+        alias = None
+        if self.current_token().type == TokenType.SEBAGAI:
+            self.advance()
+            alias = self.expect(TokenType.IDENTIFIER).value
+
+        body = self.parse_block()
+        return WithNode(context_expr=context_expr, alias=alias, body=body,
+                        line=token.line, column=token.column)
+
+    def parse_yield_stmt(self) -> YieldNode:
+        """Parse: berikan value"""
+        token = self.expect(TokenType.BERIKAN)
+        value = None
+        if self.current_token().type not in (TokenType.NEWLINE, TokenType.EOF,
+                                              TokenType.DEDENT, TokenType.SEMICOLON):
+            value = self.parse_expression()
+        self.skip_newlines()
+        return YieldNode(value=value, line=token.line, column=token.column)
 
     def parse_return(self) -> ReturnNode:
         token = self.expect(TokenType.KEMBALI)
@@ -357,7 +477,6 @@ class KilatParser:
 
     def parse_import(self) -> ImportNode:
         token = self.expect(TokenType.IMPORT)
-        # Module name can be dotted: import os.path
         module = self.expect(TokenType.IDENTIFIER).value
         while self.current_token().type == TokenType.DOT:
             self.advance()
@@ -383,7 +502,6 @@ class KilatParser:
         names = []
         aliases = []
 
-        # Support parenthesised imports: from mod import (a, b, c)
         parens = self.current_token().type == TokenType.LPAREN
         if parens:
             self.advance()
@@ -440,7 +558,53 @@ class KilatParser:
     # ------------------------------------------------------------------ #
 
     def parse_expression(self) -> ASTNode:
-        return self.parse_or()
+        """Parse expression with ternary support: value jika condition atau default"""
+        # Lambda has the lowest precedence
+        if self.current_token().type == TokenType.LAMBDA:
+            return self.parse_lambda()
+
+        expr = self.parse_or()
+
+        # Ternary: value jika condition atau default
+        if self.current_token().type == TokenType.JIKA:
+            self.advance()  # skip jika
+            condition = self.parse_or()
+            self.expect(TokenType.ATAU)
+            false_value = self.parse_expression()  # right-associative
+            return TernaryNode(
+                true_value=expr, condition=condition,
+                false_value=false_value,
+                line=expr.line, column=expr.column
+            )
+
+        return expr
+
+    def parse_lambda(self) -> LambdaNode:
+        """Parse: lambda params: expr"""
+        token = self.expect(TokenType.LAMBDA)
+        parameters = []
+        defaults = []
+
+        # Parse parameters (comma-separated, optional defaults)
+        if self.current_token().type != TokenType.COLON:
+            while True:
+                param = self.expect(TokenType.IDENTIFIER).value
+                parameters.append(param)
+                if self.current_token().type == TokenType.ASSIGN:
+                    self.advance()
+                    defaults.append(self.parse_expression())
+                if self.current_token().type == TokenType.COMMA:
+                    self.advance()
+                else:
+                    break
+
+        self.expect(TokenType.COLON)
+        body = self.parse_expression()
+
+        return LambdaNode(
+            parameters=parameters, defaults=defaults, body=body,
+            line=token.line, column=token.column
+        )
 
     def parse_or(self) -> ASTNode:
         left = self.parse_and()
@@ -477,7 +641,6 @@ class KilatParser:
         }
         while self.current_token().type in CMP_TYPES:
             op_token = self.advance()
-            # Handle "bukan dalam" (not in) and "bukan adalah" (is not)
             if op_token.type == TokenType.DALAM and isinstance(
                     self.tokens[self.pos - 2] if self.pos >= 2 else None, Token):
                 pass  # normal 'dalam'
@@ -535,7 +698,7 @@ class KilatParser:
         return self.parse_postfix()
 
     def parse_postfix(self) -> ASTNode:
-        """Parse postfix ops: calls, indexing, attribute access"""
+        """Parse postfix ops: calls, indexing/slicing, attribute access"""
         expr = self.parse_primary()
 
         while True:
@@ -547,7 +710,6 @@ class KilatParser:
                 arguments, keyword_args = self._parse_call_args()
                 self.expect(TokenType.RPAREN)
 
-                # Determine function expression
                 if isinstance(expr, IdentifierNode):
                     func = expr.name
                 else:
@@ -559,7 +721,7 @@ class KilatParser:
             elif token.type == TokenType.LBRACKET:
                 # Indexing / slicing
                 self.advance()
-                index = self.parse_expression()
+                index = self._parse_subscript(token)
                 self.expect(TokenType.RBRACKET)
                 expr = IndexNode(object=expr, index=index, line=token.line, column=token.column)
 
@@ -573,6 +735,39 @@ class KilatParser:
                 break
 
         return expr
+
+    def _parse_subscript(self, token: Token) -> ASTNode:
+        """Parse subscript: expression or slice (start:stop:step)."""
+        # Check if starts with : (e.g., [:3], [::2])
+        if self.current_token().type == TokenType.COLON:
+            return self._parse_slice(None, token)
+
+        expr = self.parse_expression()
+
+        # Check if this is a slice: [start:stop:step]
+        if self.current_token().type == TokenType.COLON:
+            return self._parse_slice(expr, token)
+
+        return expr
+
+    def _parse_slice(self, start: Optional[ASTNode], token: Token) -> SliceNode:
+        """Parse rest of a slice: :stop or :stop:step"""
+        self.advance()  # consume first :
+        stop = None
+        step = None
+
+        # Parse stop (if not immediately another : or ])
+        if self.current_token().type not in (TokenType.COLON, TokenType.RBRACKET):
+            stop = self.parse_expression()
+
+        # Parse step
+        if self.current_token().type == TokenType.COLON:
+            self.advance()  # consume second :
+            if self.current_token().type != TokenType.RBRACKET:
+                step = self.parse_expression()
+
+        return SliceNode(start=start, stop=stop, step=step,
+                         line=token.line, column=token.column)
 
     def _parse_call_args(self):
         """Parse function call arguments, returning (positional_list, keyword_dict)."""
@@ -637,19 +832,19 @@ class KilatParser:
             return IdentifierNode(name=token.value, line=token.line, column=token.column)
 
         if token.type == TokenType.LBRACKET:
-            return self.parse_list()
+            return self.parse_list_or_comp()
 
         if token.type == TokenType.LBRACE:
             return self.parse_dict()
 
         if token.type == TokenType.LPAREN:
             self.advance()
-            # Empty tuple / parenthesised expr
+            # Empty tuple
             if self.current_token().type == TokenType.RPAREN:
                 self.advance()
-                return ListNode(elements=[], line=token.line, column=token.column)
+                return TupleNode(elements=[], line=token.line, column=token.column)
             expr = self.parse_expression()
-            # Check for tuple: (a, b, c)
+            # Tuple: (a, b, c)
             if self.current_token().type == TokenType.COMMA:
                 elements = [expr]
                 while self.current_token().type == TokenType.COMMA:
@@ -658,26 +853,74 @@ class KilatParser:
                         break
                     elements.append(self.parse_expression())
                 self.expect(TokenType.RPAREN)
-                return ListNode(elements=elements, line=token.line, column=token.column)
+                return TupleNode(elements=elements, line=token.line, column=token.column)
             self.expect(TokenType.RPAREN)
             return expr
 
         self.error(f"Token tidak dijangka: {token.type.name} ({token.value!r})")
 
-    def parse_list(self) -> ListNode:
+    def parse_list_or_comp(self) -> ASTNode:
+        """Parse list literal or list comprehension."""
         token = self.expect(TokenType.LBRACKET)
-        elements = []
         self.skip_newlines()
-        while self.current_token().type != TokenType.RBRACKET:
+
+        if self.current_token().type == TokenType.RBRACKET:
+            self.expect(TokenType.RBRACKET)
+            return ListNode(elements=[], line=token.line, column=token.column)
+
+        # Parse first expression
+        first = self.parse_expression()
+        self.skip_newlines()
+
+        # Check for list comprehension: [expr untuk diulang var dalam iterable]
+        if self.current_token().type == TokenType.UNTUK:
+            return self._parse_list_comprehension(first, token)
+
+        # Regular list
+        elements = [first]
+        while self.current_token().type == TokenType.COMMA:
+            self.advance()
+            self.skip_newlines()
+            if self.current_token().type == TokenType.RBRACKET:
+                break
             elements.append(self.parse_expression())
             self.skip_newlines()
-            if self.current_token().type == TokenType.COMMA:
-                self.advance()
-                self.skip_newlines()
-            else:
-                break
+
         self.expect(TokenType.RBRACKET)
         return ListNode(elements=elements, line=token.line, column=token.column)
+
+    def _parse_list_comprehension(self, expr: ASTNode, token: Token) -> ListCompNode:
+        """Parse: [expr untuk diulang var dalam iterable jika condition]"""
+        self.expect(TokenType.UNTUK)  # consumes 'untuk diulang'
+
+        # Variable(s)
+        var_token = self.expect(TokenType.IDENTIFIER)
+        variable = var_token.value
+        variables = None
+
+        if self.current_token().type == TokenType.COMMA:
+            variables = [variable]
+            while self.current_token().type == TokenType.COMMA:
+                self.advance()
+                variables.append(self.expect(TokenType.IDENTIFIER).value)
+            variable = variables[0]
+
+        self.expect(TokenType.DALAM)
+        # Use parse_or() to avoid consuming 'jika' as ternary
+        iterable = self.parse_or()
+
+        # Optional condition: jika ...
+        condition = None
+        if self.current_token().type == TokenType.JIKA:
+            self.advance()
+            condition = self.parse_expression()
+
+        self.expect(TokenType.RBRACKET)
+        return ListCompNode(
+            expression=expr, variable=variable, iterable=iterable,
+            condition=condition, variables=variables,
+            line=token.line, column=token.column
+        )
 
     def parse_dict(self) -> DictNode:
         token = self.expect(TokenType.LBRACE)
@@ -721,13 +964,11 @@ class KilatParser:
                 continue
 
             if ch == '{':
-                # Save pending literal
                 if current_literal:
                     parts.append(StringNode(value=current_literal,
                                             line=token.line, column=token.column))
                     current_literal = ''
 
-                # Find matching closing brace (handle nested braces)
                 i += 1
                 depth = 1
                 expr_chars = []
@@ -747,8 +988,6 @@ class KilatParser:
                 expr_str = ''.join(expr_chars)
                 i += 1  # skip closing }
 
-                # Strip format spec after ':' (e.g., {x:.2f} -> parse only {x})
-                # Simple approach: if there's a colon not inside brackets, split
                 fmt_spec = ''
                 colon_pos = self._find_format_colon(expr_str)
                 if colon_pos is not None:
@@ -757,12 +996,10 @@ class KilatParser:
 
                 expr_str = expr_str.strip()
                 if expr_str:
-                    # Parse the expression using a sub-lexer/parser
                     sub_node = self._parse_inline_expr(expr_str, token)
                     parts.append(sub_node)
 
             else:
-                # Handle escape sequences in the literal portion
                 if ch == '\\' and i + 1 < len(raw):
                     esc = raw[i + 1]
                     escape_map = {

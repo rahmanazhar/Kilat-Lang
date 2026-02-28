@@ -4,7 +4,7 @@ Defines all node types for the language
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 # Base classes
@@ -170,6 +170,7 @@ class ForNode(ASTNode):
     variable: str
     iterable: ASTNode
     body: List[ASTNode]
+    variables: Optional[List[str]] = None  # for tuple unpacking: untuk diulang i, v dalam ...
     line: int = 0
     column: int = 0
 
@@ -200,6 +201,9 @@ class FunctionDefNode(ASTNode):
     parameters: List[str]
     defaults: List[ASTNode]  # Default values for parameters
     body: List[ASTNode]
+    var_args: Optional[str] = None      # *args parameter name
+    kw_args: Optional[str] = None       # **kwargs parameter name
+    decorators: List[ASTNode] = field(default_factory=list)
     line: int = 0
     column: int = 0
 
@@ -219,6 +223,7 @@ class ClassDefNode(ASTNode):
     name: str
     base_class: Optional[str]
     body: List[ASTNode]
+    decorators: List[ASTNode] = field(default_factory=list)
     line: int = 0
     column: int = 0
 
@@ -292,5 +297,82 @@ class DeleteNode(ASTNode):
 # Pass statement (as a real node, not None)
 @dataclass
 class PassNode(ASTNode):
+    line: int = 0
+    column: int = 0
+
+
+# Slicing: obj[start:stop:step]
+@dataclass
+class SliceNode(ASTNode):
+    start: Optional[ASTNode]    # None if omitted
+    stop: Optional[ASTNode]     # None if omitted
+    step: Optional[ASTNode]     # None if omitted
+    line: int = 0
+    column: int = 0
+
+
+# List comprehension: [expr untuk diulang var dalam iterable jika condition]
+@dataclass
+class ListCompNode(ASTNode):
+    expression: ASTNode
+    variable: str
+    iterable: ASTNode
+    condition: Optional[ASTNode] = None
+    variables: Optional[List[str]] = None  # for tuple unpacking
+    line: int = 0
+    column: int = 0
+
+
+# Lambda expression: lambda params: expr
+@dataclass
+class LambdaNode(ASTNode):
+    parameters: List[str]
+    defaults: List[ASTNode]
+    body: ASTNode               # single expression
+    line: int = 0
+    column: int = 0
+
+
+# Ternary expression: true_value jika condition atau false_value
+@dataclass
+class TernaryNode(ASTNode):
+    true_value: ASTNode
+    condition: ASTNode
+    false_value: ASTNode
+    line: int = 0
+    column: int = 0
+
+
+# Tuple literal: (a, b, c)
+@dataclass
+class TupleNode(ASTNode):
+    elements: List[ASTNode]
+    line: int = 0
+    column: int = 0
+
+
+# Multiple assignment / tuple unpacking: a, b = 1, 2
+@dataclass
+class MultiAssignmentNode(ASTNode):
+    targets: List[str]          # variable names
+    value: ASTNode              # right-hand side
+    line: int = 0
+    column: int = 0
+
+
+# With statement: dengan expr sebagai var:
+@dataclass
+class WithNode(ASTNode):
+    context_expr: ASTNode
+    alias: Optional[str]
+    body: List[ASTNode]
+    line: int = 0
+    column: int = 0
+
+
+# Yield expression: berikan value
+@dataclass
+class YieldNode(ASTNode):
+    value: Optional[ASTNode] = None
     line: int = 0
     column: int = 0

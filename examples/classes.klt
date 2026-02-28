@@ -12,7 +12,7 @@ kelas Orang:
         cetak(f"Nama saya {self.nama} dan umur saya {self.umur} tahun")
     
     fungsi tahun_lahir(self):
-        dari datetime import datetime
+        dari datetime masuk datetime
         tahun_sekarang = datetime.now().year
         kembali tahun_sekarang - self.umur
 

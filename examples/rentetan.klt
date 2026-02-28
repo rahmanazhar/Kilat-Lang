@@ -43,5 +43,5 @@ fail = "program.klt"
 cetak(f"Adakah fail .klt? {fail.endswith('.klt')}")
 
 cetak("\n=== Pemformatan ===")
-untuk diulang i dalam julat(1, 6):
+ulang i dalam julat(1, 6):
     cetak(f"Baris {i}: {'*' * i}")

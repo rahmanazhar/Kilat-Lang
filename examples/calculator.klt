@@ -10,9 +10,9 @@ fungsi darab(x, y):
     kembali x * y
 
 fungsi bahagi(x, y):
-    jika y == 0:
+    kalau y == 0:
         kembali "Ralat: Tidak boleh bahagi dengan sifar!"
-    atau:
+    selain:
         kembali x / y
 
 fungsi main():

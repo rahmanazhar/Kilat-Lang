@@ -22,7 +22,7 @@ nombor.append(42)
 cetak("Selepas tambah:", nombor)
 
 # Isih senarai
-salin = disusun(nombor)
+salin = susun(nombor)
 cetak("Tersusun:", salin)
 
 # Balik senarai
@@ -30,17 +30,17 @@ nombor.reverse()
 cetak("Terbalik:", nombor)
 
 # Cari dalam senarai
-jika 42 dalam nombor:
+kalau 42 dalam nombor:
     cetak("42 dijumpai!")
-atau:
+selain:
     cetak("42 tidak dijumpai")
 
 cetak("\n=== Operasi Lanjutan ===")
 
 # Jumlah
 cetak("Jumlah:", jumlah(nombor))
-cetak("Maks:", maks(nombor))
-cetak("Min:", min(nombor))
+cetak("Maks:", maksimum(nombor))
+cetak("Min:", minimum(nombor))
 
 # Gabung dua senarai
 a = [1, 2, 3]
@@ -51,7 +51,7 @@ cetak("Gabungan:", gabungan)
 # Senarai dalam senarai (matriks)
 matriks = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
 cetak("\nMatriks 3x3:")
-untuk diulang baris dalam matriks:
-    untuk diulang elemen dalam baris:
+ulang baris dalam matriks:
+    ulang elemen dalam baris:
         cetak(elemen, end=" ")
     cetak()

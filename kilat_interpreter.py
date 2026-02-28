@@ -100,12 +100,15 @@ class KilatFunction:
     """User-defined function."""
 
     def __init__(self, name: str, parameters: List[str], defaults: List[ASTNode],
-                 body: List[ASTNode], closure: Environment):
+                 body: List[ASTNode], closure: Environment,
+                 var_args: str = None, kw_args: str = None):
         self.name = name
         self.parameters = parameters
         self.defaults = defaults
         self.body = body
         self.closure = closure
+        self.var_args = var_args    # *args parameter name
+        self.kw_args = kw_args      # **kwargs parameter name
 
     def call(self, interpreter: 'KilatInterpreter',
              arguments: List[Any],
@@ -119,21 +122,34 @@ class KilatFunction:
         required_count = len(self.parameters) - len(self.defaults)
 
         # Bind positional arguments
-        for i, arg in enumerate(arguments):
-            if i >= len(self.parameters):
-                raise KilatRuntimeError(
-                    f"Fungsi '{self.name}' menerima paling banyak "
-                    f"{len(self.parameters)} argumen, diberi {len(arguments)}"
-                )
-            func_env.define(self.parameters[i], arg)
+        bound_count = min(len(arguments), len(self.parameters))
+        for i in range(bound_count):
+            func_env.define(self.parameters[i], arguments[i])
+
+        # Collect extra positional args into *args
+        if self.var_args:
+            func_env.define(self.var_args, tuple(arguments[len(self.parameters):]))
+        elif len(arguments) > len(self.parameters):
+            raise KilatRuntimeError(
+                f"Fungsi '{self.name}' menerima paling banyak "
+                f"{len(self.parameters)} argumen, diberi {len(arguments)}"
+            )
 
         # Bind keyword arguments
+        extra_kwargs = {}
         for kw_name, kw_val in keyword_args.items():
-            if kw_name not in self.parameters:
+            if kw_name in self.parameters:
+                func_env.define(kw_name, kw_val)
+            elif self.kw_args:
+                extra_kwargs[kw_name] = kw_val
+            else:
                 raise KilatRuntimeError(
                     f"Fungsi '{self.name}' tidak ada parameter '{kw_name}'"
                 )
-            func_env.define(kw_name, kw_val)
+
+        # Collect extra keyword args into **kwargs
+        if self.kw_args:
+            func_env.define(self.kw_args, extra_kwargs)
 
         # Fill in defaults for unbound parameters
         for i in range(len(self.parameters)):
@@ -401,16 +417,23 @@ class KilatInterpreter:
             'julat': _julat,
             'jenis': _jenis,
             'abs': _abs,
+            'mutlak': _abs,         # new Malay name for abs
             'maks': _max,
+            'maksimum': _max,       # new Malay name for max
             'min': _min,
+            'minimum': _min,        # new Malay name for min
             'jumlah': _sum,
             'disusun': _disusun,
+            'susun': _disusun,      # new Malay name for sorted
             'terbalik': _terbalik,
             'nombor_senarai': _nombor_senarai,
             'cantum': _cantum,
             'int': _int,
+            'nombor': _int,         # new Malay name for int
             'float': _float,
+            'perpuluhan': _float,   # new Malay name for float
             'str': _str,
+            'teks': _str,           # new Malay name for str
             'list': _list,
             'dict': _dict,
             'set': _set,
@@ -551,7 +574,21 @@ class KilatInterpreter:
                     node.line, node.column
                 )
             for item in it:
-                env.set(node.variable, item)
+                # Tuple unpacking: untuk diulang i, v dalam ...
+                if node.variables:
+                    try:
+                        values = list(item) if not isinstance(item, (list, tuple)) else item
+                        if len(values) != len(node.variables):
+                            raise KilatRuntimeError(
+                                f"Dijangka {len(node.variables)} nilai, dapat {len(values)}",
+                                node.line, node.column
+                            )
+                        for var_name, val in zip(node.variables, values):
+                            env.set(var_name, val)
+                    except (TypeError, ValueError) as e:
+                        raise KilatRuntimeError(str(e), node.line, node.column)
+                else:
+                    env.set(node.variable, item)
                 try:
                     self._exec_block(node.body, env)
                 except BreakException:
@@ -572,7 +609,20 @@ class KilatInterpreter:
 
         # ----- definitions ----- #
         if isinstance(node, FunctionDefNode):
-            func = KilatFunction(node.name, node.parameters, node.defaults, node.body, env)
+            func = KilatFunction(node.name, node.parameters, node.defaults, node.body, env,
+                                 var_args=node.var_args, kw_args=node.kw_args)
+            # Apply decorators (in reverse order)
+            for decorator_node in reversed(node.decorators):
+                decorator = self.eval(decorator_node, env)
+                if isinstance(decorator, KilatFunction):
+                    func = decorator.call(self, [func])
+                elif callable(decorator):
+                    func = decorator(func)
+                else:
+                    raise KilatRuntimeError(
+                        f"Penghias bukan fungsi boleh dipanggil",
+                        node.line, node.column
+                    )
             env.define(node.name, func)
             return None
 
@@ -583,10 +633,10 @@ class KilatInterpreter:
             for stmt in node.body:
                 if isinstance(stmt, FunctionDefNode):
                     method = KilatFunction(stmt.name, stmt.parameters,
-                                           stmt.defaults, stmt.body, class_env)
+                                           stmt.defaults, stmt.body, class_env,
+                                           var_args=stmt.var_args, kw_args=stmt.kw_args)
                     methods[stmt.name] = method
                 elif isinstance(stmt, AssignmentNode):
-                    # Class-level variable
                     class_env.define(stmt.target, self.eval(stmt.value, env))
 
             base_class = None
@@ -595,10 +645,13 @@ class KilatInterpreter:
                 if isinstance(base_val, KilatClass):
                     base_class = base_val
                 else:
-                    # Allow Python classes as base (limited support)
                     base_class = None
 
             klass = KilatClass(node.name, base_class, methods)
+            # Apply decorators (in reverse order)
+            for decorator_node in reversed(node.decorators):
+                decorator = self.eval(decorator_node, env)
+                klass = decorator(klass)
             env.define(node.name, klass)
             return None
 
@@ -691,6 +744,63 @@ class KilatInterpreter:
         if isinstance(node, PassNode):
             return None
 
+        # ----- with statement ----- #
+        if isinstance(node, WithNode):
+            context = self.eval(node.context_expr, env)
+            # Use Python's context manager protocol
+            enter_method = getattr(context, '__enter__', None)
+            exit_method = getattr(context, '__exit__', None)
+            if enter_method and exit_method:
+                value = enter_method()
+                try:
+                    if node.alias:
+                        env.define(node.alias, value)
+                    self._exec_block(node.body, env)
+                except Exception as e:
+                    if not exit_method(type(e), e, None):
+                        raise
+                else:
+                    exit_method(None, None, None)
+            else:
+                # Simple context: just assign and execute
+                if node.alias:
+                    env.define(node.alias, context)
+                self._exec_block(node.body, env)
+            return None
+
+        # ----- yield statement ----- #
+        if isinstance(node, YieldNode):
+            value = None if node.value is None else self.eval(node.value, env)
+            raise KilatRuntimeError(
+                "berikan hanya boleh digunakan dalam fungsi penjana",
+                node.line, node.column
+            )
+
+        # ----- multi-assignment ----- #
+        if isinstance(node, MultiAssignmentNode):
+            value = self.eval(node.value, env)
+            try:
+                if isinstance(value, (list, tuple)):
+                    values = list(value)
+                else:
+                    values = list(value)
+                if len(values) != len(node.targets):
+                    raise KilatRuntimeError(
+                        f"Dijangka {len(node.targets)} nilai untuk pembukaan, dapat {len(values)}",
+                        node.line, node.column
+                    )
+                for target, val in zip(node.targets, values):
+                    if target in env._globals:
+                        g = env
+                        while g.parent:
+                            g = g.parent
+                        g.variables[target] = val
+                    else:
+                        env.define(target, val)
+            except (TypeError, ValueError) as e:
+                raise KilatRuntimeError(str(e), node.line, node.column)
+            return None
+
         # ----- expression statements ----- #
         return self.eval(node, env)
 
@@ -727,8 +837,27 @@ class KilatInterpreter:
         if isinstance(node, IdentifierNode):
             return env.get(node.name)
 
+        if isinstance(node, TupleNode):
+            return tuple(self.eval(e, env) for e in node.elements)
+
         if isinstance(node, ListNode):
             return [self.eval(e, env) for e in node.elements]
+
+        if isinstance(node, ListCompNode):
+            result = []
+            iterable = self.eval(node.iterable, env)
+            for item in iterable:
+                if node.variables:
+                    values = list(item) if not isinstance(item, (list, tuple)) else item
+                    for var_name, val in zip(node.variables, values):
+                        env.set(var_name, val)
+                else:
+                    env.set(node.variable, item)
+                if node.condition is not None:
+                    if not self.is_truthy(self.eval(node.condition, env)):
+                        continue
+                result.append(self.eval(node.expression, env))
+            return result
 
         if isinstance(node, DictNode):
             result = {}
@@ -764,6 +893,27 @@ class KilatInterpreter:
                 return obj[index]
             except (KeyError, IndexError, TypeError) as e:
                 raise KilatRuntimeError(str(e), node.line, node.column)
+
+        if isinstance(node, SliceNode):
+            start = self.eval(node.start, env) if node.start else None
+            stop = self.eval(node.stop, env) if node.stop else None
+            step = self.eval(node.step, env) if node.step else None
+            return slice(start, stop, step)
+
+        if isinstance(node, TernaryNode):
+            condition = self.eval(node.condition, env)
+            if self.is_truthy(condition):
+                return self.eval(node.true_value, env)
+            else:
+                return self.eval(node.false_value, env)
+
+        if isinstance(node, LambdaNode):
+            # Create a function from the lambda
+            # Wrap the body expression in a ReturnNode
+            body = [ReturnNode(value=node.body, line=node.line, column=node.column)]
+            func = KilatFunction('<lambda>', node.parameters, node.defaults,
+                                 body, env)
+            return func
 
         raise KilatRuntimeError(
             f"Tidak dapat menilai nod jenis: {type(node).__name__}",
